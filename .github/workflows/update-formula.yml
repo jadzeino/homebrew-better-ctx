@@ -1,0 +1,117 @@
+name: Update Formula
+
+on:
+  # Triggered by betterctx-client release workflow via repository_dispatch
+  repository_dispatch:
+    types: [new-release]
+
+  # Also allow manual trigger
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to (e.g. 2.17.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    name: Update better-ctx formula
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Download binaries and compute SHA256
+        id: shas
+        run: |
+          BASE="https://github.com/jadzeino/betterctx-client/releases/download/v${{ steps.version.outputs.version }}"
+
+          download_sha() {
+            curl -sL "$1" | sha256sum | awk '{print $1}'
+          }
+
+          SHA_ARM_MAC=$(download_sha "$BASE/better-ctx-aarch64-apple-darwin.tar.gz")
+          SHA_X86_MAC=$(download_sha "$BASE/better-ctx-x86_64-apple-darwin.tar.gz")
+          SHA_ARM_LIN=$(download_sha "$BASE/better-ctx-aarch64-unknown-linux-gnu.tar.gz")
+          SHA_X86_LIN=$(download_sha "$BASE/better-ctx-x86_64-unknown-linux-gnu.tar.gz")
+
+          echo "arm_mac=$SHA_ARM_MAC" >> $GITHUB_OUTPUT
+          echo "x86_mac=$SHA_X86_MAC" >> $GITHUB_OUTPUT
+          echo "arm_lin=$SHA_ARM_LIN" >> $GITHUB_OUTPUT
+          echo "x86_lin=$SHA_X86_LIN" >> $GITHUB_OUTPUT
+
+          echo "SHA256 checksums:"
+          echo "  aarch64-apple-darwin:       $SHA_ARM_MAC"
+          echo "  x86_64-apple-darwin:        $SHA_X86_MAC"
+          echo "  aarch64-unknown-linux-gnu:  $SHA_ARM_LIN"
+          echo "  x86_64-unknown-linux-gnu:   $SHA_X86_LIN"
+
+      - name: Update formula file
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA_ARM_MAC="${{ steps.shas.outputs.arm_mac }}"
+          SHA_X86_MAC="${{ steps.shas.outputs.x86_mac }}"
+          SHA_ARM_LIN="${{ steps.shas.outputs.arm_lin }}"
+          SHA_X86_LIN="${{ steps.shas.outputs.x86_lin }}"
+
+          cat > Formula/better-ctx.rb << EOF
+          class BetterCtx < Formula
+            desc "Context Intelligence Engine for AI Coding — 24 MCP tools, 90+ shell patterns, cross-session memory. Reduces LLM token consumption by up to 99%."
+            homepage "https://betterctx.com"
+            version "$VERSION"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-aarch64-apple-darwin.tar.gz"
+                sha256 "$SHA_ARM_MAC"
+              end
+
+              on_intel do
+                url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-x86_64-apple-darwin.tar.gz"
+                sha256 "$SHA_X86_MAC"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-aarch64-unknown-linux-gnu.tar.gz"
+                sha256 "$SHA_ARM_LIN"
+              end
+
+              on_intel do
+                url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "$SHA_X86_LIN"
+              end
+            end
+
+            def install
+              bin.install "better-ctx"
+            end
+
+            test do
+              system "#{bin}/better-ctx", "--version"
+            end
+          end
+          EOF
+
+      - name: Commit and push updated formula
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/better-ctx.rb
+          git diff --cached --quiet || git commit -m "chore: update formula to v${{ steps.version.outputs.version }}"
+          git push
