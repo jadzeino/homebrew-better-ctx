@@ -1,30 +1,30 @@
 class BetterCtx < Formula
   desc "Context Intelligence Engine for AI Coding — 24 MCP tools, 90+ shell patterns, cross-session memory. Reduces LLM token consumption by up to 99%."
   homepage "https://betterctx.com"
-  version "3.0.0"
+  version "3.0.3"
   license "MIT"
 
   on_macos do
     on_arm do
       url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-aarch64-apple-darwin.tar.gz"
-      sha256 "67230821079d3ef2c1f0c543ea9ed5339771ec26d4da9791abd99e77da2ddd3b"
+      sha256 "28ed70560abcacb9b5eb801426f16588521b8ce50532234e68539f69a0489459"
     end
 
     on_intel do
       url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-x86_64-apple-darwin.tar.gz"
-      sha256 "416c06b44c6ece07e512f4ccc1e097ae08a80e91119aa60f306ad19b1ba62d51"
+      sha256 "ef49996d6a855d9e85aac3e282a4910651f5d96831c215406a980a895a66b100"
     end
   end
 
   on_linux do
     on_arm do
       url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "4b4bb02aaed8eabfbdca17d684a5ef32ac4628680dde69a1cb05efac522763e8"
+      sha256 "190e139d4714fd375c96750207014734b5fa98f7171e3fdc6a31cea352942b7a"
     end
 
     on_intel do
       url "https://github.com/jadzeino/betterctx-client/releases/download/v#{version}/better-ctx-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "384128769b22bfc85af58c8f5f6f269ed5521a5c1defa010e9fbc200d0cf3b50"
+      sha256 "e45cdefdb37f0364cc408517a4d8ec5d0c4cfdba7244a95ae1f635dc2c1ecf8e"
     end
   end
 
